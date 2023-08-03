@@ -1,0 +1,60 @@
+#!/bin/sh
+
+set -e
+
+export PATH=/usr/bin
+
+while getopts l:t: opt; do
+  case $opt in
+    l) LOWER="$OPTARG" ;;
+    t) TMP="$OPTARG" ;;
+    *) exit 1 ;;
+  esac
+done
+
+shift $((OPTIND - 1))
+
+helper_mount() {
+  # ensure directory permissions match
+  [ "$(stat -c %a "$LOWER")" = "$(stat -c %a "$TMP")" ]
+  [ "$(stat -c %u "$LOWER")" = "$(stat -c %u "$TMP")" ]
+  [ "$(stat -c %g "$LOWER")" = "$(stat -c %g "$TMP")" ]
+
+  # ensure directory is empty
+  [ -n "$(find "$TMP" -maxdepth 0 -type d -empty)" ]
+
+  install -d \
+    -m "$(stat -c %a "$LOWER")" \
+    -o "$(stat -c %u "$LOWER")" \
+    -g "$(stat -c %g "$LOWER")" \
+    "$TMP/overlay" "$TMP/upper" "$TMP/work"
+
+  mount -t overlay overlay -o nosuid,nodev,noatime "$TMP/overlay" \
+    -o lowerdir="$LOWER" \
+    -o upperdir="$TMP/upper" \
+    -o workdir="$TMP/work"
+
+  touch -r "$LOWER" "$TMP/overlay"
+}
+
+helper_unmount() {
+  # ensure mount is overlay
+  [ -n "$(awk -v mnt="$TMP/overlay" '$2 == mnt && $3 == "overlay"' /proc/mounts)" ]
+
+  # ensure directory is work directory
+  [ "$(stat -c %a "$TMP/work/work")" = 0 ]
+
+  umount "$TMP/overlay"
+
+  rm -rf "$TMP/work/work"
+}
+
+case $1 in
+  mount)
+    helper_mount
+    ;;
+
+  unmount)
+    helper_unmount
+    ;;
+esac

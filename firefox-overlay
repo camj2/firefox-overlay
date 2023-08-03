@@ -1,0 +1,161 @@
+#!/bin/sh
+
+set -e
+
+env_check() {
+  if [ -z "$XDG_RUNTIME_DIR" ] || [ ! -d "$XDG_RUNTIME_DIR" ]; then
+    printf "XDG_RUNTIME_DIR required\n" 1>&2
+    exit 1
+  fi
+
+  if [ ! -d "$HOME/.mozilla/firefox" ] && [ ! -L "$HOME/.mozilla/firefox" ]; then
+    printf "directory '%s' not found\n" "$HOME/.mozilla/firefox" 1>&2
+    exit 1
+  fi
+}
+
+helper_check() {
+  if ! command -v /usr/bin/firefox-overlay-helper > /dev/null 2>&1; then
+    printf "dependency '/usr/bin/firefox-overlay-helper' not found\n" 1>&2
+    exit 1
+  fi
+
+  # support for both sudo and doas; doas takes precedence
+  if command -v doas > /dev/null 2>&1; then
+    doas -n /usr/bin/firefox-overlay-helper # doas: Operation not permitted
+  else
+    sudo -nk /usr/bin/firefox-overlay-helper # sudo: a password is required
+  fi
+}
+
+run_as_root() {
+  # support for both sudo and doas; doas takes precedence
+  if command -v doas > /dev/null 2>&1; then
+    doas -n "$@"
+  else
+    sudo -nk "$@"
+  fi
+}
+
+overlay_mount() {
+  if mountpoint -q "$XDG_RUNTIME_DIR/firefox-overlay/overlay"; then
+    printf "directory '%s' already mounted\n" "$XDG_RUNTIME_DIR/firefox-overlay/overlay" 1>&2
+    exit 1
+  fi
+
+  if [ -L "$HOME/.mozilla/firefox" ] && [ -d "$HOME/.mozilla/firefox-lower" ]; then
+    unlink "$HOME/.mozilla/firefox"
+  elif [ -d "$HOME/.mozilla/firefox" ]; then
+    if [ ! -e "$HOME/.mozilla/firefox-lower" ]; then
+      mv "$HOME/.mozilla/firefox" "$HOME/.mozilla/firefox-lower"
+    else
+      printf "directory '%s' already exists\n" "$HOME/.mozilla/firefox-lower" 1>&2
+      exit 1
+    fi
+  else
+    printf "directory '%s' not found\n" "$HOME/.mozilla/firefox" 1>&2
+    exit 1
+  fi
+
+  ln -s firefox-lower "$HOME/.mozilla/firefox"
+
+  install -d \
+    -m "$(stat -c %a "$HOME/.mozilla/firefox-lower")" \
+    -o "$(stat -c %u "$HOME/.mozilla/firefox-lower")" \
+    -g "$(stat -c %g "$HOME/.mozilla/firefox-lower")" \
+    "$XDG_RUNTIME_DIR/firefox-overlay"
+
+  run_as_root /usr/bin/firefox-overlay-helper \
+    -l "$HOME/.mozilla/firefox-lower" -t "$XDG_RUNTIME_DIR/firefox-overlay" mount
+
+  unlink "$HOME/.mozilla/firefox"
+
+  ln -s "$XDG_RUNTIME_DIR/firefox-overlay/overlay" "$HOME/.mozilla/firefox"
+}
+
+overlay_unmount() {
+  if ! mountpoint -q "$XDG_RUNTIME_DIR/firefox-overlay/overlay"; then
+    printf "directory '%s' not mounted\n" "$XDG_RUNTIME_DIR/firefox-overlay/overlay" 1>&2
+    exit 1
+  fi
+
+  run_as_root /usr/bin/firefox-overlay-helper -t "$XDG_RUNTIME_DIR/firefox-overlay" unmount
+
+  unlink "$HOME/.mozilla/firefox"
+
+  mv "$HOME/.mozilla/firefox-lower" "$HOME/.mozilla/firefox"
+
+  rm -rf "$XDG_RUNTIME_DIR/firefox-overlay/upper"
+
+  rmdir \
+    "$XDG_RUNTIME_DIR/firefox-overlay/overlay" \
+    "$XDG_RUNTIME_DIR/firefox-overlay/work" \
+    "$XDG_RUNTIME_DIR/firefox-overlay"
+}
+
+overlay_flush() {
+  if ! mountpoint -q "$XDG_RUNTIME_DIR/firefox-overlay/overlay"; then
+    printf "directory '%s' not mounted\n" "$XDG_RUNTIME_DIR/firefox-overlay/overlay" 1>&2
+    exit 1
+  fi
+
+  rsync -aAX --delete-after --inplace --no-whole-file \
+    "$XDG_RUNTIME_DIR/firefox-overlay/overlay/" "$HOME/.mozilla/firefox-lower/"
+
+  # rm -rf "$XDG_RUNTIME_DIR/firefox-overlay/upper"/* # experimental
+}
+
+overlay_check() {
+  printf "%b" "${GLD}firefox${RST} (ssd) - "
+  du -sh "$HOME/.mozilla/firefox-lower" | awk '{print $1}'
+
+  printf "%b" "${GRN}overlay${RST} (mem) - "
+  du -sh "$XDG_RUNTIME_DIR/firefox-overlay/upper" | awk '{print $1}'
+}
+
+RST='\033[0;00m'
+GRN='\033[0;32m'
+GLD='\033[0;33m'
+
+usage() {
+  printf "%b\n" "${GLD}USAGE${RST}:"
+  printf "%s\n" "    $(basename "$0") [SUBCOMMAND]"
+  printf "\n"
+  printf "%b\n" "${GLD}SUBCOMMANDS${RST}:"
+  printf "%b\n" "    ${GRN}m${RST}, ${GRN}mount${RST}      Mount overlay"
+  printf "%b\n" "    ${GRN}u${RST}, ${GRN}unmount${RST}    Unmount overlay"
+  printf "%b\n" "    ${GRN}f${RST}, ${GRN}flush${RST}      Flush overlay to disk"
+  printf "%b\n" "    ${GRN}c${RST}, ${GRN}check${RST}      Check overlay status"
+}
+
+case $1 in
+  m | mount)
+    env_check
+    helper_check
+    overlay_mount
+    ;;
+
+  u | unmount)
+    env_check
+    helper_check
+    overlay_unmount
+    ;;
+
+  f | flush)
+    env_check
+    overlay_flush
+    ;;
+
+  c | check)
+    overlay_check
+    ;;
+
+  h | -h | help | --help | "")
+    usage
+    ;;
+
+  *)
+    printf "%s: invalid option -- '%s'\n" "$(basename "$0")" "$1" 1>&2
+    exit 1
+    ;;
+esac
