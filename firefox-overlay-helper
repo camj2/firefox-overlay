@@ -16,9 +16,7 @@ shift $((OPTIND - 1))
 
 helper_mount() {
   # ensure directory permissions match
-  [ "$(stat -c %a "$LOWER")" = "$(stat -c %a "$TMP")" ]
-  [ "$(stat -c %u "$LOWER")" = "$(stat -c %u "$TMP")" ]
-  [ "$(stat -c %g "$LOWER")" = "$(stat -c %g "$TMP")" ]
+  [ "$(stat -c "%a %u %g" "$LOWER")" = "$(stat -c "%a %u %g" "$TMP")" ]
 
   mount -t overlay overlay -o nosuid,nodev,noatime "$TMP/overlay" \
     -o lowerdir="$LOWER" \
