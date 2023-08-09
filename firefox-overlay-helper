@@ -27,6 +27,9 @@ helper_mount() {
 }
 
 helper_unmount() {
+  # ensure directory is mount
+  mountpoint -q "$TMP/overlay"
+
   # ensure mount is overlay
   [ "$(stat -f -c %T "$TMP/overlay")" = overlayfs ]
 
