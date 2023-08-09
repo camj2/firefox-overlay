@@ -39,7 +39,7 @@ helper_mount() {
 
 helper_unmount() {
   # ensure mount is overlay
-  [ -n "$(awk -v mnt="$TMP/overlay" '$2 == mnt && $3 == "overlay"' /proc/mounts)" ]
+  [ "$(stat -f -c %T "$TMP/overlay")" = overlayfs ]
 
   # ensure directory is work directory
   [ "$(stat -c %a "$TMP/work/work")" = 0 ]
