@@ -1,9 +1,11 @@
-DESTDIR = /usr/bin
+PREFIX = /usr
 
 install:
-	install -p -m 755 firefox-overlay "${DESTDIR}"
-	install -p -m 755 firefox-overlay-helper "${DESTDIR}"
+	install -m 755 firefox-overlay $(DESTDIR)$(PREFIX)/bin/
+	install -m 755 firefox-overlay-helper $(DESTDIR)$(PREFIX)/bin/
 
 uninstall:
-	rm -f "${DESTDIR}"/firefox-overlay
-	rm -f "${DESTDIR}"/firefox-overlay-helper
+	rm -f $(DESTDIR)$(PREFIX)/bin/firefox-overlay
+	rm -f $(DESTDIR)$(PREFIX)/bin/firefox-overlay-helper
+
+.PHONY: install uninstall
