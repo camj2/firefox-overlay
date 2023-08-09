@@ -20,15 +20,6 @@ helper_mount() {
   [ "$(stat -c %u "$LOWER")" = "$(stat -c %u "$TMP")" ]
   [ "$(stat -c %g "$LOWER")" = "$(stat -c %g "$TMP")" ]
 
-  # ensure directory is empty
-  [ -n "$(find "$TMP" -maxdepth 0 -type d -empty)" ]
-
-  install -d \
-    -m "$(stat -c %a "$LOWER")" \
-    -o "$(stat -c %u "$LOWER")" \
-    -g "$(stat -c %g "$LOWER")" \
-    "$TMP/overlay" "$TMP/upper" "$TMP/work"
-
   mount -t overlay overlay -o nosuid,nodev,noatime "$TMP/overlay" \
     -o lowerdir="$LOWER" \
     -o upperdir="$TMP/upper" \

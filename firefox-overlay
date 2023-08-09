@@ -63,7 +63,10 @@ overlay_mount() {
     -m "$(stat -c %a "$HOME/.mozilla/firefox-lower")" \
     -o "$(stat -c %u "$HOME/.mozilla/firefox-lower")" \
     -g "$(stat -c %g "$HOME/.mozilla/firefox-lower")" \
-    "$XDG_RUNTIME_DIR/firefox-overlay"
+    "$XDG_RUNTIME_DIR/firefox-overlay" \
+    "$XDG_RUNTIME_DIR/firefox-overlay/overlay" \
+    "$XDG_RUNTIME_DIR/firefox-overlay/upper" \
+    "$XDG_RUNTIME_DIR/firefox-overlay/work"
 
   run_as_root /usr/bin/firefox-overlay-helper \
     -l "$HOME/.mozilla/firefox-lower" -t "$XDG_RUNTIME_DIR/firefox-overlay" mount
