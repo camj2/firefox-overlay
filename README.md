@@ -24,7 +24,7 @@ tmpfs
 ## Install
 
 ```
-xbps-install -Syu firefox-overlay
+make
 
 make install
 ```
