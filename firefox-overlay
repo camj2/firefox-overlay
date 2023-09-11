@@ -1,30 +1,45 @@
 #!/bin/sh
 
-set -e
+NAME=$(basename "$0")
+HELP=$(command -v firefox-overlay-helper)
+
+USER=$(id -un)
+HOME=$(getent passwd "$USER" | cut -d : -f 6)
 
 env_check() {
-  if [ -z "$XDG_RUNTIME_DIR" ] || [ ! -d "$XDG_RUNTIME_DIR" ]; then
-    printf "XDG_RUNTIME_DIR required\n" 1>&2
+  if [ ! -d "$HOME/.mozilla/firefox" ] && [ ! -L "$HOME/.mozilla/firefox" ]; then
+    printf "%s: directory '%s' not found\n" "$NAME" "$HOME/.mozilla/firefox" 1>&2
     exit 1
   fi
 
-  if [ ! -d "$HOME/.mozilla/firefox" ] && [ ! -L "$HOME/.mozilla/firefox" ]; then
-    printf "directory '%s' not found\n" "$HOME/.mozilla/firefox" 1>&2
+  if [ -z "$XDG_RUNTIME_DIR" ]; then
+    printf "%s: XDG_RUNTIME_DIR not set\n" "$NAME" 1>&2
+    exit 1
+  fi
+
+  if [ ! -d "$XDG_RUNTIME_DIR" ]; then
+    printf "%s: directory '%s' not found\n" "$NAME" "$XDG_RUNTIME_DIR"
     exit 1
   fi
 }
 
 helper_check() {
-  if ! command -v /usr/bin/firefox-overlay-helper > /dev/null 2>&1; then
-    printf "dependency '/usr/bin/firefox-overlay-helper' not found\n" 1>&2
+  if [ -z "$HELP" ]; then
+    printf "%s: firefox-overlay-helper not found\n" "$NAME" 1>&2
     exit 1
   fi
 
   # support for both sudo and doas; doas takes precedence
   if command -v doas > /dev/null 2>&1; then
-    doas -n /usr/bin/firefox-overlay-helper # doas: Operation not permitted
+    if ! doas -n "$HELP"; then
+      printf "%s: cannot run 'doas' without password\n" "$NAME" 1>&2
+      exit 1
+    fi
   else
-    sudo -nk /usr/bin/firefox-overlay-helper # sudo: a password is required
+    if ! sudo -n "$HELP"; then
+      printf "%s: cannot run 'sudo' without password\n" "$NAME" 1>&2
+      exit 1
+    fi
   fi
 }
 
@@ -33,27 +48,22 @@ run_as_root() {
   if command -v doas > /dev/null 2>&1; then
     doas -n "$@"
   else
-    sudo -nk "$@"
+    sudo -n "$@"
   fi
 }
 
 overlay_mount() {
   if mountpoint -q "$XDG_RUNTIME_DIR/firefox-overlay/overlay"; then
-    printf "directory '%s' already mounted\n" "$XDG_RUNTIME_DIR/firefox-overlay/overlay" 1>&2
+    printf "%s: overlay already mounted\n" "$NAME" 1>&2
     exit 1
   fi
 
   if [ -L "$HOME/.mozilla/firefox" ] && [ -d "$HOME/.mozilla/firefox-lower" ]; then
-    unlink "$HOME/.mozilla/firefox"
-  elif [ -d "$HOME/.mozilla/firefox" ]; then
-    if [ ! -e "$HOME/.mozilla/firefox-lower" ]; then
-      mv "$HOME/.mozilla/firefox" "$HOME/.mozilla/firefox-lower"
-    else
-      printf "directory '%s' already exists\n" "$HOME/.mozilla/firefox-lower" 1>&2
-      exit 1
-    fi
+    rm -f "$HOME/.mozilla/firefox"
+  elif [ -d "$HOME/.mozilla/firefox" ] && [ ! -e "$HOME/.mozilla/firefox-lower" ]; then
+    mv -f "$HOME/.mozilla/firefox" "$HOME/.mozilla/firefox-lower"
   else
-    printf "directory '%s' not found\n" "$HOME/.mozilla/firefox" 1>&2
+    printf "%s: directory '%s' not created\n" "$NAME" "$HOME/.mozilla/firefox-lower" 1>&2
     exit 1
   fi
 
@@ -68,44 +78,53 @@ overlay_mount() {
     "$XDG_RUNTIME_DIR/firefox-overlay/upper" \
     "$XDG_RUNTIME_DIR/firefox-overlay/work"
 
-  run_as_root /usr/bin/firefox-overlay-helper \
-    -l "$HOME/.mozilla/firefox-lower" -t "$XDG_RUNTIME_DIR/firefox-overlay" mount
+  if ! run_as_root "$HELP" -l "$HOME/.mozilla/firefox-lower" -t "$XDG_RUNTIME_DIR/firefox-overlay" mount; then
+    printf "%s: failed to mount overlay\n" "$NAME" 1>&2
+    exit 1
+  fi
 
-  unlink "$HOME/.mozilla/firefox"
+  rm -f "$HOME/.mozilla/firefox"
 
   ln -s "$XDG_RUNTIME_DIR/firefox-overlay/overlay" "$HOME/.mozilla/firefox"
 }
 
 overlay_unmount() {
-  if ! mountpoint -q "$XDG_RUNTIME_DIR/firefox-overlay/overlay"; then
-    printf "directory '%s' not mounted\n" "$XDG_RUNTIME_DIR/firefox-overlay/overlay" 1>&2
-    exit 1
+  if mountpoint -q "$XDG_RUNTIME_DIR/firefox-overlay/overlay"; then
+    if ! run_as_root "$HELP" -t "$XDG_RUNTIME_DIR/firefox-overlay" unmount; then
+      printf "%s: failed to unmount overlay\n" "$NAME" 1>&2
+      exit 1
+    fi
   fi
 
-  run_as_root /usr/bin/firefox-overlay-helper -t "$XDG_RUNTIME_DIR/firefox-overlay" unmount
+  if [ -L "$HOME/.mozilla/firefox" ] && [ -d "$HOME/.mozilla/firefox-lower" ]; then
+    rm -f "$HOME/.mozilla/firefox"
 
-  unlink "$HOME/.mozilla/firefox"
+    mv -f "$HOME/.mozilla/firefox-lower" "$HOME/.mozilla/firefox"
+  fi
 
-  mv "$HOME/.mozilla/firefox-lower" "$HOME/.mozilla/firefox"
+  if [ -d "$XDG_RUNTIME_DIR/firefox-overlay" ]; then
+    rm -rf "$XDG_RUNTIME_DIR/firefox-overlay/upper"
 
-  rm -rf "$XDG_RUNTIME_DIR/firefox-overlay/upper"
-
-  rmdir \
-    "$XDG_RUNTIME_DIR/firefox-overlay/overlay" \
-    "$XDG_RUNTIME_DIR/firefox-overlay/work" \
-    "$XDG_RUNTIME_DIR/firefox-overlay"
+    rmdir \
+      "$XDG_RUNTIME_DIR/firefox-overlay/overlay" \
+      "$XDG_RUNTIME_DIR/firefox-overlay/work" \
+      "$XDG_RUNTIME_DIR/firefox-overlay"
+  fi
 }
 
 overlay_flush() {
   if ! mountpoint -q "$XDG_RUNTIME_DIR/firefox-overlay/overlay"; then
-    printf "directory '%s' not mounted\n" "$XDG_RUNTIME_DIR/firefox-overlay/overlay" 1>&2
+    printf "%s: overlay not mounted\n" "$NAME" 1>&2
     exit 1
   fi
 
-  rsync -aAX --delete-after --inplace --no-whole-file \
-    "$XDG_RUNTIME_DIR/firefox-overlay/overlay/" "$HOME/.mozilla/firefox-lower/"
+  if [ ! -L "$HOME/.mozilla/firefox" ] || [ ! -d "$HOME/.mozilla/firefox-lower" ]; then
+    printf "%s: discrepancy detected\n" "$NAME" 1>&2
+    exit 1
+  fi
 
-  # rm -rf "$XDG_RUNTIME_DIR/firefox-overlay/upper"/* # experimental
+  exec rsync -a --delete-after --inplace --no-whole-file \
+    "$XDG_RUNTIME_DIR/firefox-overlay/overlay/" "$HOME/.mozilla/firefox-lower/"
 }
 
 overlay_check() {
@@ -122,7 +141,7 @@ GLD='\033[0;33m'
 
 usage() {
   printf "%b\n" "${GLD}USAGE${RST}:"
-  printf "%s\n" "    $(basename "$0") [SUBCOMMAND]"
+  printf "%s\n" "    $NAME [SUBCOMMAND]"
   printf "\n"
   printf "%b\n" "${GLD}SUBCOMMANDS${RST}:"
   printf "%b\n" "    ${GRN}m${RST}, ${GRN}mount${RST}      Mount overlay"
@@ -130,6 +149,8 @@ usage() {
   printf "%b\n" "    ${GRN}f${RST}, ${GRN}flush${RST}      Flush overlay to disk"
   printf "%b\n" "    ${GRN}c${RST}, ${GRN}check${RST}      Check overlay status"
 }
+
+set -e
 
 case $1 in
   m | mount)
@@ -158,7 +179,7 @@ case $1 in
     ;;
 
   *)
-    printf "%s: invalid option -- '%s'\n" "$(basename "$0")" "$1" 1>&2
+    printf "%s: invalid option -- '%s'\n" "$NAME" "$1" 1>&2
     exit 1
     ;;
 esac

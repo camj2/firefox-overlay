@@ -15,8 +15,17 @@ done
 shift $((OPTIND - 1))
 
 helper_mount() {
+  # ensure directories exist
+  [ -d "$LOWER" ]
+  [ -d "$TMP/overlay" ]
+  [ -d "$TMP/upper" ]
+  [ -d "$TMP/work" ]
+
   # ensure directory permissions match
   [ "$(stat -c "%a %u %g" "$LOWER")" = "$(stat -c "%a %u %g" "$TMP")" ]
+
+  # ensure directory is not mount
+  mountpoint -q "$TMP/overlay" && exit 1
 
   mount -t overlay overlay -o nosuid,nodev,noatime "$TMP/overlay" \
     -o lowerdir="$LOWER" \
@@ -48,5 +57,13 @@ case $1 in
 
   unmount)
     helper_unmount
+    ;;
+
+  "")
+    exit 0
+    ;;
+
+  *)
+    exit 1
     ;;
 esac
