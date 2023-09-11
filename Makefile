@@ -19,8 +19,8 @@ clean:
 	@rm -f firefox-overlay-helper
 
 sh:
-	@shfmt -d -p -i 2 -ci -sr firefox-overlay.in
-	@shfmt -d -p -i 2 -ci -sr firefox-overlay-helper.in
+	@shfmt -w -d -p -i 2 -ci -sr firefox-overlay.in
+	@shfmt -w -d -p -i 2 -ci -sr firefox-overlay-helper.in
 
 	@shellcheck firefox-overlay.in
 	@shellcheck firefox-overlay-helper.in
