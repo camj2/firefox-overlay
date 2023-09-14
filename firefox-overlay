@@ -78,10 +78,7 @@ overlay_mount() {
     "$XDG_RUNTIME_DIR/firefox-overlay/upper" \
     "$XDG_RUNTIME_DIR/firefox-overlay/work"
 
-  if ! run_as_root "$HELP" -l "$HOME/.mozilla/firefox-lower" -t "$XDG_RUNTIME_DIR/firefox-overlay" mount; then
-    printf "%s: failed to mount overlay\n" "$NAME" 1>&2
-    exit 1
-  fi
+  run_as_root "$HELP" -l "$HOME/.mozilla/firefox-lower" -t "$XDG_RUNTIME_DIR/firefox-overlay" mount
 
   rm -f "$HOME/.mozilla/firefox"
 
@@ -90,10 +87,7 @@ overlay_mount() {
 
 overlay_unmount() {
   if mountpoint -q "$XDG_RUNTIME_DIR/firefox-overlay/overlay"; then
-    if ! run_as_root "$HELP" -t "$XDG_RUNTIME_DIR/firefox-overlay" unmount; then
-      printf "%s: failed to unmount overlay\n" "$NAME" 1>&2
-      exit 1
-    fi
+    run_as_root "$HELP" -t "$XDG_RUNTIME_DIR/firefox-overlay" unmount
   fi
 
   if [ -L "$HOME/.mozilla/firefox" ] && [ -d "$HOME/.mozilla/firefox-lower" ]; then

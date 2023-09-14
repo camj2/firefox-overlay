@@ -58,12 +58,4 @@ case $1 in
   unmount)
     helper_unmount
     ;;
-
-  "")
-    exit 0
-    ;;
-
-  *)
-    exit 1
-    ;;
 esac
