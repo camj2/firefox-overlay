@@ -1,10 +1,9 @@
 PREFIX = /usr/local
 
 all:
-	@install -m 755 firefox-overlay.in firefox-overlay
-	@install -m 755 firefox-overlay-helper.in firefox-overlay-helper
+	@printf "run 'make install' to install firefox-overlay\n"
 
-install: firefox-overlay firefox-overlay-helper
+install:
 	@mkdir -p $(DESTDIR)$(PREFIX)/bin
 
 	@install -m 755 firefox-overlay $(DESTDIR)$(PREFIX)/bin
@@ -19,10 +18,10 @@ clean:
 	@rm -f firefox-overlay-helper
 
 sh:
-	@shfmt -w -d -p -i 2 -ci -sr firefox-overlay.in
-	@shfmt -w -d -p -i 2 -ci -sr firefox-overlay-helper.in
+	@shfmt -w -d -p -i 2 -ci -sr firefox-overlay
+	@shfmt -w -d -p -i 2 -ci -sr firefox-overlay-helper
 
-	@shellcheck firefox-overlay.in
-	@shellcheck firefox-overlay-helper.in
+	@shellcheck firefox-overlay
+	@shellcheck firefox-overlay-helper
 
 .PHONY: all install uninstall clean sh
