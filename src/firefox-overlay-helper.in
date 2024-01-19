@@ -15,17 +15,10 @@ done
 shift $((OPTIND - 1))
 
 helper_mount() {
-  # ensure directories exist
-  [ -d "$LOWER" ]
-  [ -d "$TMP/overlay" ]
-  [ -d "$TMP/upper" ]
-  [ -d "$TMP/work" ]
-
-  # ensure directory permissions match
-  [ "$(stat -c "%a %u %g" "$LOWER")" = "$(stat -c "%a %u %g" "$TMP")" ]
-
-  # ensure directory is not mount
-  mountpoint -q "$TMP/overlay" && exit 1
+  [ -e "$LOWER" ]
+  [ -e "$TMP/overlay" ]
+  [ -e "$TMP/upper" ]
+  [ -e "$TMP/work" ]
 
   mount -t overlay overlay -o nosuid,nodev,noatime "$TMP/overlay" \
     -o lowerdir="$LOWER" \
@@ -36,14 +29,8 @@ helper_mount() {
 }
 
 helper_unmount() {
-  # ensure directory is mount
-  mountpoint -q "$TMP/overlay"
-
-  # ensure mount is overlay
-  [ "$(stat -f -c %T "$TMP/overlay")" = overlayfs ]
-
-  # ensure directory is work directory
-  [ "$(stat -c %a "$TMP/work/work")" = 0 ]
+  [ -e "$TMP/overlay" ]
+  [ -e "$TMP/work/work" ]
 
   umount "$TMP/overlay"
 

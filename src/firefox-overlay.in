@@ -46,16 +46,12 @@ overlay_mount() {
 
   ln -s firefox-lower "$LOWER"
 
-  install -d \
-    -m "$(stat -c %a "${LOWER}-lower")" \
-    -o "$(stat -c %u "${LOWER}-lower")" \
-    -g "$(stat -c %g "${LOWER}-lower")" \
-    "$TMP" \
+  install -d -m 700 \
     "$TMP/overlay" \
     "$TMP/upper" \
     "$TMP/work"
 
-  if ! overlay_helper -l "${LOWER}-lower" -t "$TMP" mount; then
+  if ! overlay_helper -t "$TMP" -l "${LOWER}-lower" mount; then
     die 1 "failed to mount overlay"
   fi
 
@@ -67,9 +63,13 @@ overlay_mount() {
 overlay_unmount() {
   if [ -e "$TMP" ]; then
     if [ -e "$TMP/overlay" ]; then
-      overlay_helper -t "$TMP" unmount
+      if ! overlay_helper -t "$TMP" unmount; then
+        die 1 "failed to unmount overlay"
+      fi
 
-      rmdir "$TMP/overlay" || return 1
+      if ! rmdir "$TMP/overlay"; then
+        die 1 "directory '$TMP/overlay': not empty"
+      fi
     fi
 
     rm -rf "$TMP"
