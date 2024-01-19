@@ -1,11 +1,11 @@
 PREFIX = /usr/local
 
 all:
-	@shfmt -w -d -p -i 2 -ci -sr firefox-overlay
-	@shfmt -w -d -p -i 2 -ci -sr firefox-overlay-helper
+	-@shfmt -w -d -p -i 2 -ci -sr firefox-overlay
+	-@shfmt -w -d -p -i 2 -ci -sr firefox-overlay-helper
 
-	@shellcheck firefox-overlay
-	@shellcheck firefox-overlay-helper
+	-@shellcheck firefox-overlay
+	-@shellcheck firefox-overlay-helper
 
 install:
 	@mkdir -p $(DESTDIR)$(PREFIX)/bin
