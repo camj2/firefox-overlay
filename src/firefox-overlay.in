@@ -1,23 +1,20 @@
 #!/bin/sh
 
-USER=$(id -un)
-HOME=$(getent passwd "$USER" | cut -d : -f 6)
+TMP="${XDG_RUNTIME_DIR:-/tmp}/firefox-overlay"
+
+HOME=$(getent passwd "$(id -un)" | cut -d : -f 6)
+
+export HOME
+
+LOWER="$HOME/.mozilla/firefox"
 
 env_check() {
   if [ ! -x "@HELPER@" ]; then
     die 1 "executable '@HELPER@': not found"
   fi
 
-  if [ ! -d "$HOME/.mozilla/firefox" ] && [ ! -L "$HOME/.mozilla/firefox" ]; then
-    die 1 "directory '$HOME/.mozilla/firefox': not found"
-  fi
-
-  if [ -z "$XDG_RUNTIME_DIR" ]; then
-    die 1 "XDG_RUNTIME_DIR not set"
-  fi
-
-  if [ ! -d "$XDG_RUNTIME_DIR" ]; then
-    die 1 "directory '$XDG_RUNTIME_DIR': not found"
+  if [ ! -e "$LOWER" ]; then
+    die 1 "directory '$LOWER': not found"
   fi
 }
 
@@ -31,76 +28,76 @@ overlay_helper() {
 }
 
 overlay_mount() {
-  if mountpoint -q "$XDG_RUNTIME_DIR/firefox-overlay/overlay"; then
+  if mountpoint -q "$TMP/overlay"; then
     die 1 "overlay already mounted"
   fi
 
-  if [ -L "$HOME/.mozilla/firefox" ] && [ -d "$HOME/.mozilla/firefox-lower" ]; then
-    rm -f "$HOME/.mozilla/firefox"
-  elif [ -d "$HOME/.mozilla/firefox" ] && [ ! -e "$HOME/.mozilla/firefox-lower" ]; then
-    mv -f "$HOME/.mozilla/firefox" "$HOME/.mozilla/firefox-lower"
+  if [ -L "$LOWER" ] && [ -d "${LOWER}-lower" ]; then
+    rm -f "$LOWER"
+  elif [ -d "$LOWER" ] && [ ! -e "${LOWER}-lower" ]; then
+    mv -f "$LOWER" "${LOWER}-lower"
   else
-    die 1 "directory '$HOME/.mozilla/firefox-lower': not created"
+    die 1 "directory '${LOWER}-lower': not created"
   fi
 
-  ln -s firefox-lower "$HOME/.mozilla/firefox"
+  ln -s firefox-lower "$LOWER"
 
   install -d \
-    -m "$(stat -c %a "$HOME/.mozilla/firefox-lower")" \
-    -o "$(stat -c %u "$HOME/.mozilla/firefox-lower")" \
-    -g "$(stat -c %g "$HOME/.mozilla/firefox-lower")" \
-    "$XDG_RUNTIME_DIR/firefox-overlay" \
-    "$XDG_RUNTIME_DIR/firefox-overlay/overlay" \
-    "$XDG_RUNTIME_DIR/firefox-overlay/upper" \
-    "$XDG_RUNTIME_DIR/firefox-overlay/work"
+    -m "$(stat -c %a "${LOWER}-lower")" \
+    -o "$(stat -c %u "${LOWER}-lower")" \
+    -g "$(stat -c %g "${LOWER}-lower")" \
+    "$TMP" \
+    "$TMP/overlay" \
+    "$TMP/upper" \
+    "$TMP/work"
 
-  overlay_helper -l "$HOME/.mozilla/firefox-lower" -t "$XDG_RUNTIME_DIR/firefox-overlay" mount
+  overlay_helper -l "${LOWER}-lower" -t "$TMP" mount
 
-  rm -f "$HOME/.mozilla/firefox"
+  rm -f "$LOWER"
 
-  ln -s "$XDG_RUNTIME_DIR/firefox-overlay/overlay" "$HOME/.mozilla/firefox"
+  ln -s "$TMP/overlay" "$LOWER"
 }
 
 overlay_unmount() {
-  if mountpoint -q "$XDG_RUNTIME_DIR/firefox-overlay/overlay"; then
-    overlay_helper -t "$XDG_RUNTIME_DIR/firefox-overlay" unmount
+  if mountpoint -q "$TMP/overlay"; then
+    overlay_helper -t "$TMP" unmount
   fi
 
-  if [ -L "$HOME/.mozilla/firefox" ] && [ -d "$HOME/.mozilla/firefox-lower" ]; then
-    rm -f "$HOME/.mozilla/firefox"
+  if [ -L "$LOWER" ] && [ -d "${LOWER}-lower" ]; then
+    rm -f "$LOWER"
 
-    mv -f "$HOME/.mozilla/firefox-lower" "$HOME/.mozilla/firefox"
+    mv -f "${LOWER}-lower" "$LOWER"
   fi
 
-  if [ -d "$XDG_RUNTIME_DIR/firefox-overlay" ]; then
-    rm -rf "$XDG_RUNTIME_DIR/firefox-overlay/upper"
+  if [ -d "$TMP" ]; then
+    rm -rf "$TMP/upper"
 
     rmdir \
-      "$XDG_RUNTIME_DIR/firefox-overlay/overlay" \
-      "$XDG_RUNTIME_DIR/firefox-overlay/work" \
-      "$XDG_RUNTIME_DIR/firefox-overlay"
+      "$TMP/overlay" \
+      "$TMP/work" \
+      "$TMP"
   fi
 }
 
 overlay_flush() {
-  if ! mountpoint -q "$XDG_RUNTIME_DIR/firefox-overlay/overlay"; then
+  if ! mountpoint -q "$TMP/overlay"; then
     die 1 "overlay not mounted"
   fi
 
-  if [ ! -L "$HOME/.mozilla/firefox" ] || [ ! -d "$HOME/.mozilla/firefox-lower" ]; then
+  if [ ! -L "$LOWER" ] || [ ! -d "${LOWER}-lower" ]; then
     die 1 "discrepancy detected"
   fi
 
   exec rsync -a --delete-after --inplace --no-whole-file \
-    "$XDG_RUNTIME_DIR/firefox-overlay/overlay/" "$HOME/.mozilla/firefox-lower/"
+    "$TMP/overlay/" "${LOWER}-lower/"
 }
 
 overlay_check() {
   printf "%b" "${YLW}firefox${RST} (ssd) - "
-  du -sh "$HOME/.mozilla/firefox-lower" | awk '{print $1}'
+  du -sh "${LOWER}-lower" | awk '{print $1}'
 
   printf "%b" "${GRN}overlay${RST} (mem) - "
-  du -sh "$XDG_RUNTIME_DIR/firefox-overlay/upper" | awk '{print $1}'
+  du -sh "$TMP/upper" | awk '{print $1}'
 }
 
 die() {
