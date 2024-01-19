@@ -1,11 +1,13 @@
 #!/bin/sh
 
-HELP=$(command -v firefox-overlay-helper)
-
 USER=$(id -un)
 HOME=$(getent passwd "$USER" | cut -d : -f 6)
 
 env_check() {
+  if [ ! -x "@HELPER@" ]; then
+    die 1 "executable '@HELPER@': not found"
+  fi
+
   if [ ! -d "$HOME/.mozilla/firefox" ] && [ ! -L "$HOME/.mozilla/firefox" ]; then
     die 1 "directory '$HOME/.mozilla/firefox': not found"
   fi
@@ -19,29 +21,12 @@ env_check() {
   fi
 }
 
-helper_check() {
-  if [ -z "$HELP" ]; then
-    die 1 "firefox-overlay-helper not found"
-  fi
-
+overlay_helper() {
   # support for both sudo and doas; doas takes precedence
   if command -v doas > /dev/null 2>&1; then
-    if ! doas -n "$HELP"; then
-      die 1 "cannot run 'doas' without password"
-    fi
+    doas -n "@HELPER@" "$@"
   else
-    if ! sudo -n "$HELP"; then
-      die 1 "cannot run 'sudo' without password"
-    fi
-  fi
-}
-
-run_as_root() {
-  # support for both sudo and doas; doas takes precedence
-  if command -v doas > /dev/null 2>&1; then
-    doas -n "$@"
-  else
-    sudo -n "$@"
+    sudo -n "@HELPER@" "$@"
   fi
 }
 
@@ -69,7 +54,7 @@ overlay_mount() {
     "$XDG_RUNTIME_DIR/firefox-overlay/upper" \
     "$XDG_RUNTIME_DIR/firefox-overlay/work"
 
-  run_as_root "$HELP" -l "$HOME/.mozilla/firefox-lower" -t "$XDG_RUNTIME_DIR/firefox-overlay" mount
+  overlay_helper -l "$HOME/.mozilla/firefox-lower" -t "$XDG_RUNTIME_DIR/firefox-overlay" mount
 
   rm -f "$HOME/.mozilla/firefox"
 
@@ -78,7 +63,7 @@ overlay_mount() {
 
 overlay_unmount() {
   if mountpoint -q "$XDG_RUNTIME_DIR/firefox-overlay/overlay"; then
-    run_as_root "$HELP" -t "$XDG_RUNTIME_DIR/firefox-overlay" unmount
+    overlay_helper -t "$XDG_RUNTIME_DIR/firefox-overlay" unmount
   fi
 
   if [ -L "$HOME/.mozilla/firefox" ] && [ -d "$HOME/.mozilla/firefox-lower" ]; then
@@ -144,13 +129,11 @@ set -e
 case $1 in
   m | mount)
     env_check
-    helper_check
     overlay_mount
     ;;
 
   u | unmount)
     env_check
-    helper_check
     overlay_unmount
     ;;
 

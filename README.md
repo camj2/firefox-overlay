@@ -24,6 +24,7 @@ tmpfs
 ## Install
 
 ```
+make
 make install
 ```
 

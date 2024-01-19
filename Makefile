@@ -1,20 +1,33 @@
 PREFIX = /usr/local
 
+BINDIR = $(PREFIX)/bin
+
 all:
-	-@shfmt -w -d -p -i 2 -ci -sr firefox-overlay
-	-@shfmt -w -d -p -i 2 -ci -sr firefox-overlay-helper
+	-@shfmt -w -d -p -i 2 -ci -sr src/firefox-overlay.in
+	-@shfmt -w -d -p -i 2 -ci -sr src/firefox-overlay-helper.in
 
-	-@shellcheck firefox-overlay
-	-@shellcheck firefox-overlay-helper
+	-@shellcheck src/firefox-overlay.in
+	-@shellcheck src/firefox-overlay-helper.in
 
-install:
-	@mkdir -p $(DESTDIR)$(PREFIX)/bin
+	@sed 's|@HELPER@|$(BINDIR)/firefox-overlay-helper|g' src/firefox-overlay.in > firefox-overlay
 
-	@install -m 755 firefox-overlay $(DESTDIR)$(PREFIX)/bin
-	@install -m 755 firefox-overlay-helper $(DESTDIR)$(PREFIX)/bin
+	@cp -f src/firefox-overlay-helper.in firefox-overlay-helper
+
+	@chmod +x firefox-overlay
+	@chmod +x firefox-overlay-helper
+
+install: firefox-overlay firefox-overlay-helper
+	@mkdir -p $(DESTDIR)$(BINDIR)
+
+	@install -m 755 firefox-overlay $(DESTDIR)$(BINDIR)
+	@install -m 755 firefox-overlay-helper $(DESTDIR)$(BINDIR)
 
 uninstall:
-	@rm -f $(DESTDIR)$(PREFIX)/bin/firefox-overlay
-	@rm -f $(DESTDIR)$(PREFIX)/bin/firefox-overlay-helper
+	@rm -f $(DESTDIR)$(BINDIR)/firefox-overlay
+	@rm -f $(DESTDIR)$(BINDIR)/firefox-overlay-helper
 
-.PHONY: all install uninstall
+clean:
+	@rm -f firefox-overlay
+	@rm -f firefox-overlay-helper
+
+.PHONY: all install uninstall clean
