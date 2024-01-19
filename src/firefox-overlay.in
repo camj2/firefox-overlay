@@ -28,16 +28,20 @@ overlay_helper() {
 }
 
 overlay_mount() {
-  if mountpoint -q "$TMP/overlay"; then
-    die 1 "overlay already mounted"
+  if [ -e "$TMP/overlay" ]; then
+    die 1 "directory '$TMP/overlay': already exists"
   fi
 
+  # ungraceful shutdown
   if [ -L "$LOWER" ] && [ -d "${LOWER}-lower" ]; then
     rm -f "$LOWER"
+
+  # default state
   elif [ -d "$LOWER" ] && [ ! -e "${LOWER}-lower" ]; then
     mv -f "$LOWER" "${LOWER}-lower"
+
   else
-    die 1 "directory '${LOWER}-lower': not created"
+    die 1 "directory '${LOWER}-lower': not found"
   fi
 
   ln -s firefox-lower "$LOWER"
@@ -51,7 +55,9 @@ overlay_mount() {
     "$TMP/upper" \
     "$TMP/work"
 
-  overlay_helper -l "${LOWER}-lower" -t "$TMP" mount
+  if ! overlay_helper -l "${LOWER}-lower" -t "$TMP" mount; then
+    die 1 "failed to mount overlay"
+  fi
 
   rm -f "$LOWER"
 
@@ -59,44 +65,46 @@ overlay_mount() {
 }
 
 overlay_unmount() {
-  if mountpoint -q "$TMP/overlay"; then
-    overlay_helper -t "$TMP" unmount
+  if [ -e "$TMP" ]; then
+    if [ -e "$TMP/overlay" ]; then
+      overlay_helper -t "$TMP" unmount
+
+      rmdir "$TMP/overlay" || return 1
+    fi
+
+    rm -rf "$TMP"
   fi
 
-  if [ -L "$LOWER" ] && [ -d "${LOWER}-lower" ]; then
+  if [ -e "${LOWER}-lower" ]; then
     rm -f "$LOWER"
 
     mv -f "${LOWER}-lower" "$LOWER"
   fi
-
-  if [ -d "$TMP" ]; then
-    rm -rf "$TMP/upper"
-
-    rmdir \
-      "$TMP/overlay" \
-      "$TMP/work" \
-      "$TMP"
-  fi
 }
 
 overlay_flush() {
-  if ! mountpoint -q "$TMP/overlay"; then
-    die 1 "overlay not mounted"
+  if [ ! -e "$TMP/overlay" ]; then
+    die 1 "directory '$TMP/overlay': not found"
   fi
 
-  if [ ! -L "$LOWER" ] || [ ! -d "${LOWER}-lower" ]; then
-    die 1 "discrepancy detected"
+  if [ ! -e "${LOWER}-lower" ]; then
+    die 1 "directory '${LOWER}-lower': not found"
   fi
 
-  exec rsync -a --delete-after --inplace --no-whole-file \
-    "$TMP/overlay/" "${LOWER}-lower/"
+  if ! rsync -aAX --delete-after --inplace --no-whole-file "$TMP/overlay"/ "${LOWER}-lower"/; then
+    die 1 "failed to flush overlay"
+  fi
 }
 
 overlay_check() {
-  printf "%b" "${YLW}firefox${RST} (ssd) - "
+  if [ ! -e "$TMP/upper" ] && [ ! -e "${LOWER}-lower" ]; then
+    die 0 "overlay not mounted"
+  fi
+
+  printf %b "${YLW}firefox${RST} (ssd) - "
   du -sh "${LOWER}-lower" | awk '{print $1}'
 
-  printf "%b" "${GRN}overlay${RST} (mem) - "
+  printf %b "${GRN}overlay${RST} (mem) - "
   du -sh "$TMP/upper" | awk '{print $1}'
 }
 
@@ -120,8 +128,6 @@ usage() {
   printf "%b\n" "    ${GRN}f${RST}, ${GRN}flush${RST}      Flush overlay to disk"
   printf "%b\n" "    ${GRN}c${RST}, ${GRN}check${RST}      Check overlay status"
 }
-
-set -e
 
 case $1 in
   m | mount)
