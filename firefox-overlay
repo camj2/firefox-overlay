@@ -1,6 +1,5 @@
 #!/bin/sh
 
-NAME=$(basename "$0")
 HELP=$(command -v firefox-overlay-helper)
 
 USER=$(id -un)
@@ -8,37 +7,31 @@ HOME=$(getent passwd "$USER" | cut -d : -f 6)
 
 env_check() {
   if [ ! -d "$HOME/.mozilla/firefox" ] && [ ! -L "$HOME/.mozilla/firefox" ]; then
-    printf "%s: directory '%s' not found\n" "$NAME" "$HOME/.mozilla/firefox" 1>&2
-    exit 1
+    die 1 "directory '$HOME/.mozilla/firefox': not found"
   fi
 
   if [ -z "$XDG_RUNTIME_DIR" ]; then
-    printf "%s: XDG_RUNTIME_DIR not set\n" "$NAME" 1>&2
-    exit 1
+    die 1 "XDG_RUNTIME_DIR not set"
   fi
 
   if [ ! -d "$XDG_RUNTIME_DIR" ]; then
-    printf "%s: directory '%s' not found\n" "$NAME" "$XDG_RUNTIME_DIR"
-    exit 1
+    die 1 "directory '$XDG_RUNTIME_DIR': not found"
   fi
 }
 
 helper_check() {
   if [ -z "$HELP" ]; then
-    printf "%s: firefox-overlay-helper not found\n" "$NAME" 1>&2
-    exit 1
+    die 1 "firefox-overlay-helper not found"
   fi
 
   # support for both sudo and doas; doas takes precedence
   if command -v doas > /dev/null 2>&1; then
     if ! doas -n "$HELP"; then
-      printf "%s: cannot run 'doas' without password\n" "$NAME" 1>&2
-      exit 1
+      die 1 "cannot run 'doas' without password"
     fi
   else
     if ! sudo -n "$HELP"; then
-      printf "%s: cannot run 'sudo' without password\n" "$NAME" 1>&2
-      exit 1
+      die 1 "cannot run 'sudo' without password"
     fi
   fi
 }
@@ -54,8 +47,7 @@ run_as_root() {
 
 overlay_mount() {
   if mountpoint -q "$XDG_RUNTIME_DIR/firefox-overlay/overlay"; then
-    printf "%s: overlay already mounted\n" "$NAME" 1>&2
-    exit 1
+    die 1 "overlay already mounted"
   fi
 
   if [ -L "$HOME/.mozilla/firefox" ] && [ -d "$HOME/.mozilla/firefox-lower" ]; then
@@ -63,8 +55,7 @@ overlay_mount() {
   elif [ -d "$HOME/.mozilla/firefox" ] && [ ! -e "$HOME/.mozilla/firefox-lower" ]; then
     mv -f "$HOME/.mozilla/firefox" "$HOME/.mozilla/firefox-lower"
   else
-    printf "%s: directory '%s' not created\n" "$NAME" "$HOME/.mozilla/firefox-lower" 1>&2
-    exit 1
+    die 1 "directory '$HOME/.mozilla/firefox-lower': not created"
   fi
 
   ln -s firefox-lower "$HOME/.mozilla/firefox"
@@ -108,13 +99,11 @@ overlay_unmount() {
 
 overlay_flush() {
   if ! mountpoint -q "$XDG_RUNTIME_DIR/firefox-overlay/overlay"; then
-    printf "%s: overlay not mounted\n" "$NAME" 1>&2
-    exit 1
+    die 1 "overlay not mounted"
   fi
 
   if [ ! -L "$HOME/.mozilla/firefox" ] || [ ! -d "$HOME/.mozilla/firefox-lower" ]; then
-    printf "%s: discrepancy detected\n" "$NAME" 1>&2
-    exit 1
+    die 1 "discrepancy detected"
   fi
 
   exec rsync -a --delete-after --inplace --no-whole-file \
@@ -122,22 +111,28 @@ overlay_flush() {
 }
 
 overlay_check() {
-  printf "%b" "${GLD}firefox${RST} (ssd) - "
+  printf "%b" "${YLW}firefox${RST} (ssd) - "
   du -sh "$HOME/.mozilla/firefox-lower" | awk '{print $1}'
 
   printf "%b" "${GRN}overlay${RST} (mem) - "
   du -sh "$XDG_RUNTIME_DIR/firefox-overlay/upper" | awk '{print $1}'
 }
 
+die() {
+  printf "firefox-overlay: %s\n" "$2" 1>&2
+
+  exit "$1"
+}
+
 RST='\033[0;00m'
 GRN='\033[0;32m'
-GLD='\033[0;33m'
+YLW='\033[0;33m'
 
 usage() {
-  printf "%b\n" "${GLD}USAGE${RST}:"
-  printf "%s\n" "    $NAME [SUBCOMMAND]"
+  printf "%b\n" "${YLW}USAGE${RST}:"
+  printf "%s\n" "    firefox-overlay [SUBCOMMAND]"
   printf "\n"
-  printf "%b\n" "${GLD}SUBCOMMANDS${RST}:"
+  printf "%b\n" "${YLW}SUBCOMMANDS${RST}:"
   printf "%b\n" "    ${GRN}m${RST}, ${GRN}mount${RST}      Mount overlay"
   printf "%b\n" "    ${GRN}u${RST}, ${GRN}unmount${RST}    Unmount overlay"
   printf "%b\n" "    ${GRN}f${RST}, ${GRN}flush${RST}      Flush overlay to disk"
@@ -173,7 +168,6 @@ case $1 in
     ;;
 
   *)
-    printf "%s: invalid option -- '%s'\n" "$NAME" "$1" 1>&2
-    exit 1
+    die 1 "unrecognized command '$1'"
     ;;
 esac
