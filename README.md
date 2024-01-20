@@ -79,25 +79,11 @@ mkdir -p ~/.sv
 cp -rf init/runit/firefox-overlay ~/.sv/
 ```
 
-<br>
-
-You could also optionally create a service to periodically flush the overlay every hour:
-
-```sh
-xbps-install -Syu snooze
-
-cp -rf init/runit/firefox-overlay-cron ~/.sv/
-```
-
-<br>
-
 Once done, add the following to your startup script to start `runsvdir`:
 
 ```
 runsvdir /home/<user>/.sv
 ```
-
-<br>
 
 Users of [Sway](https://swaywm.org/) could, for example, add the following to `~/.config/sway/config`:
 
