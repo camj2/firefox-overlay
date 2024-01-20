@@ -15,10 +15,10 @@ done
 shift $((OPTIND - 1))
 
 helper_mount() {
-  [ -e "$LOWER" ]
-  [ -e "$TMP/overlay" ]
-  [ -e "$TMP/upper" ]
-  [ -e "$TMP/work" ]
+  [ -d "$LOWER" ]
+  [ -d "$TMP/overlay" ]
+  [ -d "$TMP/upper" ]
+  [ -d "$TMP/work" ]
 
   mount -t overlay overlay -o nosuid,nodev,noatime "$TMP/overlay" \
     -o lowerdir="$LOWER" \
@@ -29,8 +29,8 @@ helper_mount() {
 }
 
 helper_unmount() {
-  [ -e "$TMP/overlay" ]
-  [ -e "$TMP/work/work" ]
+  [ -d "$TMP/overlay" ]
+  [ -d "$TMP/work/work" ]
 
   umount "$TMP/overlay"
 

@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -e
+
 TMP="${XDG_RUNTIME_DIR:-/tmp}/firefox-overlay"
 
 HOME=$(getent passwd "$(id -un)" | cut -d : -f 6)
@@ -28,8 +30,8 @@ overlay_helper() {
 }
 
 overlay_mount() {
-  if [ -e "$TMP/overlay" ]; then
-    die 1 "directory '$TMP/overlay': already exists"
+  if [ -e "$TMP" ]; then
+    die 1 "directory '$TMP': already exists"
   fi
 
   # ungraceful shutdown
@@ -46,10 +48,7 @@ overlay_mount() {
 
   ln -s firefox-lower "$LOWER"
 
-  install -d -m 700 \
-    "$TMP/overlay" \
-    "$TMP/upper" \
-    "$TMP/work"
+  install -d -m 700 "$TMP/overlay" "$TMP/upper" "$TMP/work"
 
   if ! overlay_helper -t "$TMP" -l "${LOWER}-lower" mount; then
     die 1 "failed to mount overlay"
@@ -67,15 +66,13 @@ overlay_unmount() {
         die 1 "failed to unmount overlay"
       fi
 
-      if ! rmdir "$TMP/overlay"; then
-        die 1 "directory '$TMP/overlay': not empty"
-      fi
+      rmdir "$TMP/overlay"
     fi
 
     rm -rf "$TMP"
   fi
 
-  if [ -e "${LOWER}-lower" ]; then
+  if [ -L "$LOWER" ] && [ -d "${LOWER}-lower" ]; then
     rm -f "$LOWER"
 
     mv -f "${LOWER}-lower" "$LOWER"
@@ -83,12 +80,12 @@ overlay_unmount() {
 }
 
 overlay_flush() {
-  if [ ! -e "$TMP/overlay" ]; then
-    die 1 "directory '$TMP/overlay': not found"
+  if [ ! -f "$TMP/overlay/profiles.ini" ]; then
+    die 1 "overlay not mounted"
   fi
 
-  if [ ! -e "${LOWER}-lower" ]; then
-    die 1 "directory '${LOWER}-lower': not found"
+  if [ ! -L "$LOWER" ] || [ ! -d "${LOWER}-lower" ]; then
+    die 1 "overlay not mounted"
   fi
 
   if ! rsync -aAX --delete-after --inplace --no-whole-file "$TMP/overlay"/ "${LOWER}-lower"/; then
@@ -97,7 +94,7 @@ overlay_flush() {
 }
 
 overlay_check() {
-  if [ ! -e "$TMP/upper" ] && [ ! -e "${LOWER}-lower" ]; then
+  if [ ! -e "$TMP" ]; then
     die 0 "overlay not mounted"
   fi
 
