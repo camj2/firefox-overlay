@@ -4,9 +4,11 @@ set -e
 
 TMP="${XDG_RUNTIME_DIR:-/tmp}/firefox-overlay"
 
-HOME=$(getent passwd "$(id -un)" | cut -d : -f 6)
+if [ -z "$HOME" ]; then
+  HOME=$(getent passwd "$(id -un)" | cut -d : -f 6)
 
-export HOME
+  export HOME
+fi
 
 LOWER="$HOME/.mozilla/firefox"
 
