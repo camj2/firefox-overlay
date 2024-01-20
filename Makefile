@@ -23,10 +23,10 @@ clean:
 	@rm -f firefox-overlay-helper
 
 check:
-	-@shfmt -w -d -p -i 2 -ci -sr src/firefox-overlay
-	-@shfmt -w -d -p -i 2 -ci -sr src/firefox-overlay-helper
+	-shfmt -w -d -p -i 2 -ci -sr src/firefox-overlay
+	-shfmt -w -d -p -i 2 -ci -sr src/firefox-overlay-helper
 
-	-@shellcheck src/firefox-overlay
-	-@shellcheck src/firefox-overlay-helper
+	-shellcheck src/firefox-overlay
+	-shellcheck src/firefox-overlay-helper
 
 .PHONY: all install uninstall clean check
