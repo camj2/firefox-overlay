@@ -22,7 +22,7 @@ env_check() {
 
 overlay_helper() {
   # support for both sudo and doas; doas takes precedence
-  if command -v doas > /dev/null 2>&1; then
+  if [ -x /usr/bin/doas ]; then
     doas -n "@HELPER@" "$@"
   else
     sudo -n "@HELPER@" "$@"
