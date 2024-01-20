@@ -47,7 +47,7 @@ permit nopass <user> cmd /usr/local/bin/firefox-overlay-helper
 
 #### Notes
 
-* This is not required if `sudo`/`doas` is already configured in no password mode.
+* This is not required if `sudo`/`doas` are already configured in no password mode.
 
 * If you installed `firefox-overlay` from your package manager, replace `/usr/local/bin` with `/usr/bin`.
 
@@ -64,13 +64,13 @@ SUBCOMMANDS:
     c, check      Check overlay status
 ``` -->
 
-## Daemon
+### Daemon
 
 `firefox-overlay` needs to be configured as a daemon in order to mount the overlay automatically. This also allows the overlay to be flushed when the daemon is terminated.
 
-### runit
+#### runit
 
-Void Linux users can create a user based `runit` service:
+Void Linux users can create a user based [`runit`](http://smarden.org/runit/) service:
 
 ```sh
 mkdir -p ~/.sv
@@ -83,7 +83,7 @@ Once done, add the following to your init script:
 runsvdir /home/<user>/.sv
 ```
 
-### systemd
+#### systemd
 
 <!-- TODO - add systemd user unit files to repository -->
 
@@ -93,13 +93,13 @@ https://wiki.archlinux.org/title/Systemd/User#Writing_user_units
 
 You can check the status of the overlay by using the following:
 
-```
+```sh
 firefox-overlay check
 ```
 
 ## Cache
 
-Firefox writes cache data in `~/.cache/mozilla/firefox` which `firefox-overlay` doesn't handle.
+Firefox uses `~/.cache/mozilla/firefox` for cache files which `firefox-overlay` doesn't handle.
 
 You could solve this by adding the following to `/etc/fstab`:
 
