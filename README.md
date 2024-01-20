@@ -8,7 +8,7 @@ This works by mounting an overlay over `~/.mozilla/firefox` and storing the uppe
 
 ## Installation
 
-```
+```sh
 git clone https://gitlab.com/camj/firefox-overlay
 cd firefox-overlay
 make
@@ -26,8 +26,6 @@ rsync -aAX ~/.mozilla/firefox/ ~/.mozilla/firefox_backup/
 ```
 
 ### Overlay
-
-<!-- `firefox-overlay-helper` requires access to `sudo`/`doas` to mount/unmount the overlay. This is required since mounting/unmounting an overlay requires root permissions. -->
 
 `firefox-overlay-helper` requires root permissions to mount/unmount the overlay.
 
@@ -68,7 +66,7 @@ SUBCOMMANDS:
 
 ## Daemon
 
-`firefox-overlay` needs to be configured as a daemon in order to mount the overlay automatically. This also means the overlay will be flushed when the daemon is terminated.
+`firefox-overlay` needs to be configured as a daemon in order to mount the overlay automatically. This also allows the overlay to be flushed when the daemon is terminated.
 
 ### runit
 
@@ -79,16 +77,10 @@ mkdir -p ~/.sv
 cp -rf init/runit/firefox-overlay ~/.sv/
 ```
 
-Once done, add the following to your startup script to start `runsvdir`:
+Once done, add the following to your init script:
 
 ```
 runsvdir /home/<user>/.sv
-```
-
-Users of [Sway](https://swaywm.org/) could, for example, add the following to `~/.config/sway/config`:
-
-```
-exec runsvdir /home/<user>/.sv
 ```
 
 ### systemd
@@ -96,6 +88,14 @@ exec runsvdir /home/<user>/.sv
 <!-- TODO - add systemd user unit files to repository -->
 
 https://wiki.archlinux.org/title/Systemd/User#Writing_user_units
+
+## Check
+
+You can check the status of the overlay by using the following:
+
+```
+firefox-overlay check
+```
 
 ## Cache
 
