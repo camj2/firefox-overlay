@@ -12,14 +12,6 @@ fi
 
 LOWER="$HOME/.mozilla/firefox"
 
-if [ -z "$XDG_CACHE_HOME" ]; then
-  XDG_CACHE_HOME="$HOME/.cache"
-
-  export XDG_CACHE_HOME
-fi
-
-CACHE="$XDG_CACHE_HOME/mozilla/firefox"
-
 env_check() {
   if [ ! -x "@HELPER@" ]; then
     die 1 "executable '@HELPER@': not found"
@@ -67,32 +59,9 @@ overlay_mount() {
   rm -f "$LOWER"
 
   ln -s "$TMP/overlay" "$LOWER"
-
-  install -d -m 700 "$TMP/cache" "$XDG_CACHE_HOME/mozilla"
-
-  if [ -e "$CACHE" ]; then
-
-    # ungraceful shutdown
-    if [ -L "$CACHE" ]; then
-      rm -f "$CACHE"
-
-    # assumed state
-    elif [ -d "$CACHE" ]; then
-      rm -rf "$CACHE"
-
-    else
-      die 1 "directory '$CACHE': not found"
-    fi
-  fi
-
-  ln -s "$TMP/cache" "$CACHE"
 }
 
 overlay_unmount() {
-  if [ -L "$CACHE" ]; then
-    rm -f "$CACHE"
-  fi
-
   if [ -d "$TMP" ]; then
     if [ -d "$TMP/overlay" ]; then
       if ! overlay_helper unmount "$TMP"; then
@@ -135,7 +104,7 @@ overlay_check() {
   du -sh "${LOWER}-lower" | awk '{print $1}'
 
   printf %b "${GRN}overlay${RST} (mem) - "
-  du -shc "$TMP/upper" "$TMP/cache" | tail -1 | awk '{print $1}'
+  du -sh "$TMP/upper" | awk '{print $1}'
 }
 
 die() {

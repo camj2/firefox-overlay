@@ -97,6 +97,16 @@ You can check the status of the overlay by using the following:
 firefox-overlay check
 ```
 
+## Cache
+
+Firefox uses `~/.cache/mozilla/firefox` for cache files which `firefox-overlay` doesn't handle.
+
+You could solve this by adding the following to `/etc/fstab`:
+
+```
+tmpfs /home/<user>/.cache/mozilla/firefox tmpfs nosuid,nodev,size=1024M 0 0
+```
+
 ## Related projects
 
 * https://github.com/graysky2/profile-sync-daemon
