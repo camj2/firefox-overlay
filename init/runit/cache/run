@@ -1,0 +1,40 @@
+#!/bin/sh
+
+set -e
+
+TMP="${XDG_RUNTIME_DIR:-/tmp}/.cache"
+
+if [ -z "$HOME" ]; then
+  HOME=$(getent passwd "$(id -un)" | cut -d : -f 6)
+
+  export HOME
+fi
+
+if [ -z "$XDG_CACHE_HOME" ]; then
+  XDG_CACHE_HOME="$HOME/.cache"
+
+  export XDG_CACHE_HOME
+fi
+
+# ungraceful shutdown
+if [ -L "$XDG_CACHE_HOME" ]; then
+  rm -f "$XDG_CACHE_HOME"
+fi
+
+if [ -d "$XDG_CACHE_HOME" ]; then
+  rm -rf "$XDG_CACHE_HOME"
+fi
+
+if [ -e "$XDG_CACHE_HOME" ]; then
+  exit 1
+fi
+
+if [ -e "$TMP" ]; then
+  exit 1
+fi
+
+install -d -m 700 "$TMP"
+
+ln -s "$TMP" "$XDG_CACHE_HOME"
+
+exec chpst -b cache pause
