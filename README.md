@@ -1,14 +1,14 @@
 # firefox-overlay
 
-Redirect all Firefox writes to a `tmpfs` backed [`overlay`](https://docs.kernel.org/filesystems/overlayfs.html).
+Redirect Firefox disk writes to a `tmpfs` backed [overlay](https://docs.kernel.org/filesystems/overlayfs.html).
 
-This works by mounting an overlay over `~/.mozilla/firefox` and storing the upper portion of the overlay on a `tmpfs` mountpoint.
+Web browsers such as Firefox are known for writing an excessive amount of data to disk, even when running in the background. Disabling features such as crash recovery and disk cache do not solve the issue.
 
-![usage](usage.png)
+firefox-overlay solves this by mounting an overlay over `~/.mozilla/firefox` and storing the upper portion of the overlay on a `tmpfs` mountpoint. Once mounted, Firefox writes data to system memory rather than the underlying filesystem.
 
 ## Installation
 
-```sh
+```
 git clone https://gitlab.com/camj/firefox-overlay
 cd firefox-overlay
 make
@@ -21,7 +21,7 @@ make install
 
 Before starting, optionally backup `~/.mozilla/firefox`:
 
-```sh
+```
 rsync -aAX ~/.mozilla/firefox/ ~/.mozilla/firefox_backup/
 ```
 
@@ -49,17 +49,17 @@ permit nopass <user> cmd /usr/local/bin/firefox-overlay-helper
 
 * This is not required if `sudo`/`doas` are already configured in no password mode.
 
-* If you installed `firefox-overlay` from your package manager, replace `/usr/local/bin` with `/usr/bin`.
+* If you installed firefox-overlay from your package manager, replace `/usr/local/bin` with `/usr/bin`.
 
 ### Daemon
 
-`firefox-overlay` needs to be configured as a daemon in order to mount the overlay automatically. This also allows the overlay to be flushed when the daemon is terminated.
+Running firefox-overlay as a daemon is the recommended method to mount/unmount the overlay. Any data residing in the overlay will be flushed to disk when the daemon is terminated.
 
 #### runit
 
-Void Linux users can create a user based [`runit`](http://smarden.org/runit/) service:
+Create a user based runit service by utilizing the included `firefox-overlay` service:
 
-```sh
+```
 mkdir -p ~/.sv
 cp -rf init/runit/firefox-overlay ~/.sv/
 ```
@@ -70,6 +70,12 @@ Once done, add the following to your init script:
 runsvdir /home/<user>/.sv
 ```
 
+Verify the service is running:
+
+```
+sv status ~/.sv/firefox-overlay
+```
+
 #### systemd
 
 <!-- TODO - add systemd user unit files to repository -->
@@ -78,25 +84,23 @@ https://wiki.archlinux.org/title/Systemd/User#Writing_user_units
 
 ### Cache
 
-Firefox uses `~/.cache/mozilla/firefox` for cache files which `firefox-overlay` doesn't handle.
+Firefox uses `~/.cache/mozilla/firefox` for cache files which firefox-overlay doesn't handle.
 
 You could solve this by symlinking `~/.cache` to a `tmpfs` mountpoint.
 
 #### runit
 
-One could accomplish this by using the included `cache` service:
+This can be accomplished by utilizing the included `cache` service:
 
-```sh
+```
 cp -rf init/runit/cache ~/.sv/
 ```
 
-Once done, ensure the `cache` service is running:
+Verify the service is running:
 
-```sh
-readlink -f ~/.cache
 ```
-
-This should print `/run/user/1000/.cache` or `/tmp/.cache` if `XDG_RUNTIME_DIR` is unset.
+sv status ~/.sv/cache
+```
 
 #### systemd
 
@@ -123,27 +127,9 @@ SUBCOMMANDS:
 
 You can check the status of the overlay by using the following:
 
-```sh
+```
 firefox-overlay check
 ```
-
-### vsv
-
-Void Linux users can install `vsv` which can provide a nice service overview:
-
-```sh
-xbps-install -Syu vsv
-```
-
-One could use the following alias to view user services:
-
-```
-alias vsv="vsv -d /home/<user>/.sv"
-```
-
-Verify the `firefox-overlay` daemon is running:
-
-![vsv](vsv.png)
 
 ## Related projects
 
