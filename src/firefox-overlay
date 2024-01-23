@@ -64,7 +64,6 @@ overlay_unmount() {
         die 1 "failed to unmount overlay"
       fi
 
-      # delete using rmdir to ensure overlay is unmounted
       rmdir "$TMP/overlay"
     fi
 
@@ -79,7 +78,7 @@ overlay_unmount() {
 }
 
 overlay_flush() {
-  # ensure overlay is mounted by checking for profiles.ini; Firefox specific
+  # profiles.ini; Firefox specific
   if [ ! -f "$TMP/overlay/profiles.ini" ]; then
     die 1 "overlay not mounted"
   fi
