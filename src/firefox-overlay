@@ -58,8 +58,8 @@ overlay_mount() {
 }
 
 overlay_unmount() {
-  if [ -d "$TMP" ]; then
-    if [ -d "$TMP/overlay" ]; then
+  if [ -e "$TMP" ]; then
+    if [ -e "$TMP/overlay" ]; then
       if ! overlay_helper unmount "$TMP"; then
         die 1 "failed to unmount overlay"
       fi
