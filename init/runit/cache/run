@@ -8,7 +8,7 @@ TMP="${XDG_RUNTIME_DIR:-/tmp}/.cache"
 
 XDG_CACHE_HOME="$HOME/.cache"
 
-[ -L "$XDG_CACHE_HOME" ] && rm -f "$XDG_CACHE_HOME" # ungraceful shutdown
+[ -L "$XDG_CACHE_HOME" ] && unlink "$XDG_CACHE_HOME" # ungraceful shutdown
 [ -e "$XDG_CACHE_HOME" ] && rm -rf "$XDG_CACHE_HOME"
 
 install -d -m 700 "$TMP"

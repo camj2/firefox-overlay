@@ -34,7 +34,7 @@ overlay_mount() {
 
   # ungraceful shutdown
   if [ -L "$LOWER" ] && [ -d "${LOWER}-lower" ]; then
-    rm -f "$LOWER"
+    unlink "$LOWER"
 
   # default state
   elif [ -d "$LOWER" ] && [ ! -e "${LOWER}-lower" ]; then
@@ -52,7 +52,7 @@ overlay_mount() {
     die 1 "failed to mount overlay"
   fi
 
-  rm -f "$LOWER"
+  unlink "$LOWER"
 
   ln -s "$TMP/overlay" "$LOWER"
 }
@@ -71,7 +71,7 @@ overlay_unmount() {
   fi
 
   if [ -L "$LOWER" ] && [ -d "${LOWER}-lower" ]; then
-    rm -f "$LOWER"
+    unlink "$LOWER"
 
     mv -f "${LOWER}-lower" "$LOWER"
   fi

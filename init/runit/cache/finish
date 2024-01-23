@@ -8,6 +8,6 @@ TMP="${XDG_RUNTIME_DIR:-/tmp}/.cache"
 
 XDG_CACHE_HOME="$HOME/.cache"
 
-[ -L "$XDG_CACHE_HOME" ] && rm -f "$XDG_CACHE_HOME"
+[ -L "$XDG_CACHE_HOME" ] && unlink "$XDG_CACHE_HOME"
 
 [ -e "$TMP" ] && rm -rf "$TMP"
