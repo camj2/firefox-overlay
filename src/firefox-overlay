@@ -13,7 +13,7 @@ env_check() {
     die 1 "executable '@HELPER@': not found"
   fi
 
-  if [ ! -e "$LOWER" ]; then
+  if [ ! -d "$LOWER" ] && [ ! -L "$LOWER" ]; then
     die 1 "directory '$LOWER': not found"
   fi
 }
