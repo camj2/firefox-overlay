@@ -1,10 +1,10 @@
 # firefox-overlay
 
-Redirect Firefox disk writes to a `tmpfs` backed [overlay](https://docs.kernel.org/filesystems/overlayfs.html).
+Redirect Firefox disk writes to a tmpfs backed [overlay](https://docs.kernel.org/filesystems/overlayfs.html).
 
-Web browsers such as Firefox are known for writing an excessive amount of data to disk, even when running in the background. Disabling features such as crash recovery and disk cache do not solve the issue.
+Web browsers such as Firefox are known for writing excessive amounts of data to disk, even when running in the background. Disabling features such as crash recovery and disk cache do not solve the issue.
 
-firefox-overlay solves this by mounting an overlay over `~/.mozilla/firefox` and storing the upper portion of the overlay on a `tmpfs` mountpoint. Once mounted, Firefox writes data to system memory rather than the underlying filesystem.
+firefox-overlay solves this by mounting an overlay over `~/.mozilla/firefox` and storing the upper portion of the overlay on a tmpfs mountpoint. Once mounted, Firefox writes data to system memory rather than the underlying filesystem.
 
 ## Installation
 
@@ -22,12 +22,12 @@ make install
 Before starting, optionally backup `~/.mozilla/firefox`:
 
 ```
-rsync -aAX ~/.mozilla/firefox/ ~/.mozilla/firefox_backup/
+cp -a --reflink=always ~/.mozilla/firefox ~/.mozilla/firefox-backup
 ```
 
 ### Overlay
 
-`firefox-overlay-helper` requires root permissions to mount/unmount the overlay.
+firefox-overlay requires root permissions to mount/unmount the overlay.
 
 #### sudo
 
@@ -61,7 +61,7 @@ Create a user based runit service by utilizing the included `firefox-overlay` se
 
 ```
 mkdir -p ~/.sv
-cp -rf init/runit/firefox-overlay ~/.sv/
+cp -r init/runit/firefox-overlay ~/.sv/
 ```
 
 Once done, add the following to your init script:
@@ -76,24 +76,24 @@ Verify the service is running:
 sv status ~/.sv/firefox-overlay
 ```
 
-#### systemd
+<!-- #### systemd -->
 
 <!-- TODO - add systemd user unit files to repository -->
 
-https://wiki.archlinux.org/title/Systemd/User#Writing_user_units
+<!-- https://wiki.archlinux.org/title/Systemd/User#Writing_user_units -->
 
 ### Cache
 
 Firefox uses `~/.cache/mozilla/firefox` for cache files which firefox-overlay doesn't handle.
 
-You could solve this by symlinking `~/.cache` to a `tmpfs` mountpoint.
+You could solve this by symlinking `~/.cache` to a tmpfs mountpoint.
 
 #### runit
 
 This can be accomplished by utilizing the included `cache` service:
 
 ```
-cp -rf init/runit/cache ~/.sv/
+cp -r init/runit/cache ~/.sv/
 ```
 
 Verify the service is running:
@@ -102,11 +102,11 @@ Verify the service is running:
 sv status ~/.sv/cache
 ```
 
-#### systemd
+<!-- #### systemd -->
 
 <!-- TODO - add systemd user unit files to repository -->
 
-https://wiki.archlinux.org/title/Systemd/User#Writing_user_units
+<!-- https://wiki.archlinux.org/title/Systemd/User#Writing_user_units -->
 
 ## Debug
 
