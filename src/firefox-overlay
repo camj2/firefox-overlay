@@ -19,7 +19,6 @@ env_check() {
 }
 
 overlay_helper() {
-  # support for both sudo and doas; doas takes precedence
   if [ -x /usr/bin/doas ]; then
     doas -n "@HELPER@" "$@" || return 1
   else
@@ -65,7 +64,6 @@ overlay_unmount() {
       fi
     fi
 
-    # ensure overlay is unmounted before recursively removing temp directory
     rm -rf "$TMP"
   fi
 
@@ -77,7 +75,6 @@ overlay_unmount() {
 }
 
 overlay_flush() {
-  # profiles.ini; Firefox specific
   if [ ! -f "$TMP/overlay/profiles.ini" ]; then
     die "overlay not mounted"
   fi
