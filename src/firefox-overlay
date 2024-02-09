@@ -21,9 +21,9 @@ env_check() {
 overlay_helper() {
   # support for both sudo and doas; doas takes precedence
   if [ -x /usr/bin/doas ]; then
-    doas -n "@HELPER@" "$@"
+    doas -n "@HELPER@" "$@" || return 1
   else
-    sudo -n "@HELPER@" "$@"
+    sudo -n "@HELPER@" "$@" || return 1
   fi
 }
 
@@ -60,13 +60,12 @@ overlay_mount() {
 overlay_unmount() {
   if [ -e "$TMP" ]; then
     if [ -e "$TMP/overlay" ]; then
-      if ! overlay_helper unmount "$TMP"; then
+      if ! overlay_helper unmount "$TMP" || ! rmdir "$TMP/overlay"; then
         die "failed to unmount overlay"
       fi
-
-      rmdir "$TMP/overlay"
     fi
 
+    # ensure overlay is unmounted before recursively removing temp directory
     rm -rf "$TMP"
   fi
 
