@@ -2,8 +2,7 @@ PREFIX = /usr/local
 
 all:
 	@sed 's|@HELPER@|$(PREFIX)/bin/firefox-overlay-helper|g' src/firefox-overlay > firefox-overlay
-
-	@cp -f src/firefox-overlay-helper firefox-overlay-helper
+	@sed 's|@SELF@|$(PREFIX)/bin/firefox-overlay|g' src/firefox-overlay-helper > firefox-overlay-helper
 
 	@chmod +x firefox-overlay
 	@chmod +x firefox-overlay-helper
