@@ -10,11 +10,11 @@ LOWER="$HOME/.mozilla/firefox"
 
 env_check() {
   if [ ! -x "@HELPER@" ]; then
-    die 1 "executable '@HELPER@': not found"
+    die "executable '@HELPER@': not found"
   fi
 
   if [ ! -d "$LOWER" ] && [ ! -L "$LOWER" ]; then
-    die 1 "directory '$LOWER': not found"
+    die "directory '$LOWER': not found"
   fi
 }
 
@@ -29,7 +29,7 @@ overlay_helper() {
 
 overlay_mount() {
   if [ -e "$TMP" ]; then
-    die 1 "directory '$TMP': already exists"
+    die "directory '$TMP': already exists"
   fi
 
   # ungraceful shutdown
@@ -41,7 +41,7 @@ overlay_mount() {
     mv -f "$LOWER" "${LOWER}-lower"
 
   else
-    die 1 "directory '${LOWER}-lower': not found"
+    die "directory '${LOWER}-lower': not found"
   fi
 
   ln -s firefox-lower "$LOWER"
@@ -49,7 +49,7 @@ overlay_mount() {
   install -d -m 700 "$TMP/overlay" "$TMP/upper" "$TMP/work"
 
   if ! overlay_helper mount "$TMP" "${LOWER}-lower"; then
-    die 1 "failed to mount overlay"
+    die "failed to mount overlay"
   fi
 
   unlink "$LOWER"
@@ -61,7 +61,7 @@ overlay_unmount() {
   if [ -e "$TMP" ]; then
     if [ -e "$TMP/overlay" ]; then
       if ! overlay_helper unmount "$TMP"; then
-        die 1 "failed to unmount overlay"
+        die "failed to unmount overlay"
       fi
 
       rmdir "$TMP/overlay"
@@ -80,21 +80,21 @@ overlay_unmount() {
 overlay_flush() {
   # profiles.ini; Firefox specific
   if [ ! -f "$TMP/overlay/profiles.ini" ]; then
-    die 1 "overlay not mounted"
+    die "overlay not mounted"
   fi
 
   if [ ! -L "$LOWER" ] || [ ! -d "${LOWER}-lower" ]; then
-    die 1 "overlay not mounted"
+    die "overlay not mounted"
   fi
 
   if ! rsync -aAX --delete-after --inplace --no-whole-file "$TMP/overlay"/ "${LOWER}-lower"/; then
-    die 1 "failed to flush overlay"
+    die "failed to flush overlay"
   fi
 }
 
 overlay_check() {
   if [ ! -e "$TMP" ]; then
-    die 0 "overlay not mounted"
+    die "overlay not mounted"
   fi
 
   printf %b "${YLW}firefox${RST} (ssd) - "
@@ -105,9 +105,8 @@ overlay_check() {
 }
 
 die() {
-  printf "firefox-overlay: %s\n" "$2" 1>&2
-
-  exit "$1"
+  printf "firefox-overlay: %s\n" "$*" >&2
+  exit 1
 }
 
 RST='\033[0;00m'
@@ -150,6 +149,6 @@ case $1 in
     ;;
 
   *)
-    die 1 "unrecognized command '$1'"
+    die "unrecognized command '$1'"
     ;;
 esac

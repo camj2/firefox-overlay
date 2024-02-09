@@ -40,7 +40,7 @@ case $1 in
     ;;
 
   *)
-    printf "firefox-overlay-helper: use 'firefox-overlay' instead\n" 1>&2
+    printf "firefox-overlay-helper: use 'firefox-overlay' instead\n" >&2
     exit 1
     ;;
 esac
