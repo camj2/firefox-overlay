@@ -142,11 +142,7 @@ case $1 in
     overlay_check >&2
     ;;
 
-  h | -h | help | --help | "")
-    usage >&2
-    ;;
-
   *)
-    die "unrecognized command '$1'"
+    usage >&2
     ;;
 esac
