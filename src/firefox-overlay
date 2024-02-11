@@ -19,7 +19,7 @@ env_check() {
 }
 
 overlay_helper() {
-  if [ -x /usr/bin/doas ]; then
+  if command -v doas > /dev/null; then
     doas -n "@HELPER@" "$@" || return 1
   else
     sudo -n "@HELPER@" "$@" || return 1
