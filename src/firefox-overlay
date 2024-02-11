@@ -37,7 +37,7 @@ overlay_mount() {
 
   # default state
   elif [ -d "$LOWER" ] && [ ! -e "${LOWER}-lower" ]; then
-    mv -f "$LOWER" "${LOWER}-lower"
+    mv -Tn "$LOWER" "${LOWER}-lower"
 
   else
     die "directory '${LOWER}-lower': not found"
@@ -48,6 +48,8 @@ overlay_mount() {
   install -d -m 700 "$TMP/overlay" "$TMP/upper" "$TMP/work"
 
   if ! overlay_helper mount "$TMP" "${LOWER}-lower"; then
+    overlay_unmount
+
     die "failed to mount overlay"
   fi
 
@@ -57,20 +59,20 @@ overlay_mount() {
 }
 
 overlay_unmount() {
+  if [ -L "$LOWER" ] && [ -d "${LOWER}-lower" ]; then
+    unlink "$LOWER"
+
+    mv -Tn "${LOWER}-lower" "$LOWER"
+  fi
+
   if [ -e "$TMP" ]; then
     if [ -e "$TMP/overlay" ]; then
-      if ! overlay_helper unmount "$TMP" || ! rmdir "$TMP/overlay"; then
+      if ! overlay_helper unmount "$TMP" && ! rmdir "$TMP/overlay"; then
         die "failed to unmount overlay"
       fi
     fi
 
     rm -rf "$TMP"
-  fi
-
-  if [ -L "$LOWER" ] && [ -d "${LOWER}-lower" ]; then
-    unlink "$LOWER"
-
-    mv -f "${LOWER}-lower" "$LOWER"
   fi
 }
 
