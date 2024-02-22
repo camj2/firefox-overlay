@@ -4,12 +4,21 @@ set -e
 
 TMP="${XDG_RUNTIME_DIR:-/tmp}/.cache"
 
-[ -z "$HOME" ] && HOME=$(getent passwd "$(id -un)" | cut -d : -f 6)
+if [ -z "$HOME" ]; then
+  HOME=$(getent passwd "$(id -un)" | cut -d : -f 6)
+fi
 
 XDG_CACHE_HOME="$HOME/.cache"
 
-[ -L "$XDG_CACHE_HOME" ] && unlink "$XDG_CACHE_HOME" # ungraceful shutdown
-[ -e "$XDG_CACHE_HOME" ] && rm -rf "$XDG_CACHE_HOME"
+# ungraceful shutdown
+if [ -L "$XDG_CACHE_HOME" ]; then
+  unlink "$XDG_CACHE_HOME"
+fi
+
+# default state
+if [ -e "$XDG_CACHE_HOME" ]; then
+  rm -rf "$XDG_CACHE_HOME"
+fi
 
 install -d -m 700 "$TMP"
 
