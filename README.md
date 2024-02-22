@@ -27,11 +27,11 @@ cp -a --reflink=always ~/.mozilla/firefox ~/.mozilla/firefox-backup
 
 ### Overlay
 
-firefox-overlay requires root permissions to mount/unmount the overlay.
+firefox-overlay requires root permissions to mount/unmount the overlay:
 
 #### sudo
 
-Users of `sudo` need to add the following to `/etc/sudoers`:
+Add the following to `/etc/sudoers`:
 
 ```
 <user> ALL=(ALL:ALL) NOPASSWD: /usr/local/bin/firefox-overlay-helper
@@ -39,17 +39,11 @@ Users of `sudo` need to add the following to `/etc/sudoers`:
 
 #### doas
 
-Users of `doas` need to add the following to `/etc/doas.conf`:
+Add the following to `/etc/doas.conf`:
 
 ```
 permit nopass <user> cmd /usr/local/bin/firefox-overlay-helper
 ```
-
-#### Notes
-
-* This is not required if `sudo`/`doas` are already configured in no password mode.
-
-* If you installed firefox-overlay from your package manager, replace `/usr/local/bin` with `/usr/bin`.
 
 ### Daemon
 
@@ -57,7 +51,7 @@ Running firefox-overlay as a daemon is the recommended method to mount/unmount t
 
 #### runit
 
-Create a user based runit service by utilizing the included `firefox-overlay` service:
+Create a user, (non-root), runit service by utilizing the included `firefox-overlay` service:
 
 ```
 mkdir -p ~/.sv
@@ -70,17 +64,11 @@ Once done, add the following to your init script:
 runsvdir /home/<user>/.sv
 ```
 
-Verify the service is running:
+Verify the service is running with:
 
 ```
 sv status ~/.sv/firefox-overlay
 ```
-
-<!-- #### systemd -->
-
-<!-- TODO - add systemd user unit files to repository -->
-
-<!-- https://wiki.archlinux.org/title/Systemd/User#Writing_user_units -->
 
 ### Cache
 
@@ -96,17 +84,11 @@ This can be accomplished by utilizing the included `cache` service:
 cp -r init/runit/cache ~/.sv/
 ```
 
-Verify the service is running:
+Verify the service is running with:
 
 ```
 sv status ~/.sv/cache
 ```
-
-<!-- #### systemd -->
-
-<!-- TODO - add systemd user unit files to repository -->
-
-<!-- https://wiki.archlinux.org/title/Systemd/User#Writing_user_units -->
 
 ## Debug
 
@@ -123,9 +105,9 @@ SUBCOMMANDS:
     c, check      Check overlay status
 ```
 
-### Status
+### Memory
 
-You can check the status of the overlay by using the following:
+Check memory usage with:
 
 ```
 firefox-overlay check
