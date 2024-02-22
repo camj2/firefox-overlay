@@ -48,7 +48,11 @@ overlay_mount() {
   install -d -m 700 "$TMP/overlay" "$TMP/upper" "$TMP/work"
 
   if ! overlay_helper mount "$TMP" "${LOWER}-lower"; then
-    overlay_unmount
+    unlink "$LOWER"
+
+    mv -T "${LOWER}-lower" "$LOWER"
+
+    rmdir "$TMP/overlay" "$TMP/upper" "$TMP/work" "$TMP"
 
     die "failed to mount overlay"
   fi
@@ -66,10 +70,8 @@ overlay_unmount() {
   fi
 
   if [ -e "$TMP" ]; then
-    if [ -e "$TMP/overlay" ]; then
-      if ! overlay_helper unmount "$TMP" && ! rmdir "$TMP/overlay"; then
-        die "failed to unmount overlay"
-      fi
+    if ! overlay_helper unmount "$TMP"; then
+      die "failed to unmount overlay"
     fi
 
     rm -rf "$TMP"
