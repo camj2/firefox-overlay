@@ -13,10 +13,11 @@ helper_mount() {
   [ -d "$TMP/upper" ]
   [ -d "$TMP/work" ]
 
-  mount -t overlay overlay -o nosuid,nodev,noexec,noatime "$TMP/overlay" \
+  mount -t overlay overlay -o nosuid,nodev,noexec,noatime \
     -o lowerdir="$LOWER" \
     -o upperdir="$TMP/upper" \
-    -o workdir="$TMP/work"
+    -o workdir="$TMP/work" \
+    "$TMP/overlay"
 
   touch -r "$LOWER" "$TMP/overlay"
 }
