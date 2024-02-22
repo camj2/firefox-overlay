@@ -37,7 +37,7 @@ overlay_mount() {
 
   # default state
   elif [ -d "$LOWER" ] && [ ! -e "${LOWER}-lower" ]; then
-    mv -Tn "$LOWER" "${LOWER}-lower"
+    mv -T "$LOWER" "${LOWER}-lower"
 
   else
     die "directory '${LOWER}-lower': not found"
@@ -62,7 +62,7 @@ overlay_unmount() {
   if [ -L "$LOWER" ] && [ -d "${LOWER}-lower" ]; then
     unlink "$LOWER"
 
-    mv -Tn "${LOWER}-lower" "$LOWER"
+    mv -T "${LOWER}-lower" "$LOWER"
   fi
 
   if [ -e "$TMP" ]; then
