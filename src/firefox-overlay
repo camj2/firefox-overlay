@@ -2,20 +2,22 @@
 
 set -e
 
-TMP="${XDG_RUNTIME_DIR:-/tmp}/firefox-overlay"
+[ -n "$HOME" ]
+[ -n "$XDG_RUNTIME_DIR" ]
 
-if [ -z "$HOME" ]; then
-  HOME=$(getent passwd "$(id -un)" | cut -d : -f 6)
-fi
+TMP="$XDG_RUNTIME_DIR/firefox-overlay"
 
-LOWER="$HOME/.mozilla/firefox"
+UPPER="$HOME/.mozilla/firefox"
+LOWER="$HOME/.mozilla/firefox-lower"
+
+TEST="$TMP/overlay/profiles.ini"
 
 env_check() {
   if [ ! -x "@HELPER@" ]; then
     die "executable '@HELPER@': not found"
   fi
 
-  if [ ! -d "$LOWER" ] && [ ! -L "$LOWER" ]; then
+  if [ ! -d "$UPPER" ] && [ ! -L "$UPPER" ]; then
     die "directory '$LOWER': not found"
   fi
 }
@@ -34,41 +36,41 @@ overlay_mount() {
   fi
 
   # ungraceful shutdown
-  if [ -L "$LOWER" ] && [ -d "${LOWER}-lower" ]; then
-    unlink "$LOWER"
+  if [ -L "$UPPER" ] && [ -d "$LOWER" ]; then
+    rm -f "$UPPER"
 
   # default state
-  elif [ -d "$LOWER" ] && [ ! -e "${LOWER}-lower" ]; then
-    mv -T "$LOWER" "${LOWER}-lower"
+  elif [ -d "$UPPER" ] && [ ! -e "$LOWER" ]; then
+    mv -Tn "$UPPER" "$LOWER"
 
   else
-    die "directory '${LOWER}-lower': not found"
+    die "directory '$LOWER': not found"
   fi
 
-  ln -s firefox-lower "$LOWER"
+  ln -s firefox-lower "$UPPER"
 
-  install -d -m 700 "$TMP/overlay" "$TMP/upper" "$TMP/work"
+  install -d -m 0700 "$TMP/overlay" "$TMP/upper" "$TMP/work"
 
-  if ! overlay_helper mount "$TMP" "${LOWER}-lower"; then
-    unlink "$LOWER"
+  if ! overlay_helper mount "$TMP" "$LOWER"; then
+    rm -f "$UPPER"
 
-    mv -T "${LOWER}-lower" "$LOWER"
+    mv -T "$LOWER" "$UPPER"
 
     rmdir "$TMP/overlay" "$TMP/upper" "$TMP/work" "$TMP"
 
     die "failed to mount overlay"
   fi
 
-  unlink "$LOWER"
+  rm -f "$UPPER"
 
-  ln -s "$TMP/overlay" "$LOWER"
+  ln -s "$TMP/overlay" "$UPPER"
 }
 
 overlay_unmount() {
-  if [ -L "$LOWER" ] && [ -d "${LOWER}-lower" ]; then
-    unlink "$LOWER"
+  if [ -L "$UPPER" ] && [ -d "$LOWER" ]; then
+    rm -f "$UPPER"
 
-    mv -T "${LOWER}-lower" "$LOWER"
+    mv -T "$LOWER" "$UPPER"
   fi
 
   if [ -e "$TMP" ]; then
@@ -81,15 +83,15 @@ overlay_unmount() {
 }
 
 overlay_flush() {
-  if [ ! -f "$TMP/overlay/profiles.ini" ]; then
+  if [ ! -f "$TEST" ]; then
     die "overlay not mounted"
   fi
 
-  if [ ! -L "$LOWER" ] || [ ! -d "${LOWER}-lower" ]; then
+  if [ ! -L "$UPPER" ] || [ ! -d "$LOWER" ]; then
     die "overlay not mounted"
   fi
 
-  if ! rsync -aAX --delete-after --inplace --no-whole-file "$TMP/overlay"/ "${LOWER}-lower"/; then
+  if ! rsync -aAX --delete-after --inplace --no-whole-file "$TMP/overlay"/ "$LOWER"/; then
     die "failed to flush overlay"
   fi
 }
@@ -100,7 +102,7 @@ overlay_check() {
   fi
 
   printf %b "${YLW}firefox${RST} (ssd) - "
-  du -sh "${LOWER}-lower" | awk '{print $1}'
+  du -sh "$LOWER" | awk '{print $1}'
 
   printf %b "${GRN}overlay${RST} (mem) - "
   du -sh "$TMP/upper" | awk '{print $1}'
