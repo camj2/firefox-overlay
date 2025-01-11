@@ -91,7 +91,7 @@ overlay_flush() {
     die "overlay not mounted"
   fi
 
-  if ! rsync -aAX --delete-after --inplace --no-whole-file "$TMP/overlay"/ "$LOWER"/; then
+  if ! rsync -a --delete-after --inplace --no-whole-file "$TMP/overlay"/ "$LOWER"/; then
     die "failed to flush overlay"
   fi
 }
